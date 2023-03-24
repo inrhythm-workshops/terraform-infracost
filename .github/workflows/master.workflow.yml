@@ -1,0 +1,100 @@
+name: Terraform
+
+env:
+  PIPELINE_ID: ${GITHUB_RUN_ID}-${GITHUB_RUN_NUMBER}
+  TF_VAR_aws_region: ${{ secrets.AWS_REGION }}
+  TF_VAR_aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  TF_VAR_aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  TF_VAR_env_cidr_block: ${{ secrets.ENV_CIDR_BLOCK }}
+  TF_VAR_eb_workshop_settings: ${{ secrets.EB_WORKSHOP_SETTINGS }}
+  TF_VAR_eb_workshop_app_type: ${{ secrets.EB_WORKSHOP_APP_TYPE }}
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_REGION: ${{ secrets.AWS_REGION }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+  DEPLOY_ENV: "production"
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      is_destroy:
+        description: "Whether or not to destroy the infrastructure on AWS => true/false"
+        required: true
+        default: "false"
+
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout source code
+      uses: actions/checkout@v2
+
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v1
+
+    - name: terraform format
+      id: fmt
+      run: terraform fmt -check
+
+    - name: terraform init
+      id: init
+      run: terraform init
+
+    - name: terraform validate
+      id: validate
+      run: terraform validate -no-color
+    
+    # - name: terraform workspace
+    #   id: workspace
+    #   run: terraform workspace select ${{ env.DEPLOY_ENV }} || terraform workspace new ${{ env.DEPLOY_ENV }}
+
+    - name: terraform plan
+      id: plan
+      if: github.event_name == 'pull_request'
+      run: terraform plan -no-color
+      continue-on-error: false
+
+    - name: Update Pull Request
+      uses: actions/github-script@0.9.0
+      if: github.event_name == 'pull_request'
+      env:
+        PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+      with:
+        github-token: ${{ secrets.GITHUB_TOKEN }}
+        script: |
+          const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
+          #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
+          #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+          #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+
+          <details><summary>Show Plan</summary>
+
+          \`\`\`\n
+          ${process.env.PLAN}
+          \`\`\`
+
+          </details>
+
+          *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`*`;
+
+          github.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: output
+          })
+    
+    - name: Terraform Plan Status  
+      if: steps.plan.outcome == 'failure'  
+      run: exit 1
+    
+    - name: terraform apply 
+      if: ${{ github.event.inputs.is_destroy != 'true' }}
+      run: terraform apply -auto-approve -no-color
+
+    - name: terraform destroy  
+      if: ${{ github.event.inputs.is_destroy == 'true' }}
+      run: terraform destroy -auto-approve -no-color
