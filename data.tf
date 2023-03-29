@@ -16,7 +16,7 @@ data "aws_iam_policy_document" "irworkshop" {
     }
 
     resources = [
-      "arn:aws:s3:::${var.irworkshop_domain}/*"
+      "arn:aws:s3:::${aws_s3_bucket.irworkshop.id}/*"
     ]
   }
 }
