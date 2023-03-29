@@ -39,10 +39,15 @@ module "eb_workshop" {
   tags = local.tags
 }
 
+resource "random_id" "gen_id" {
+  byte_length = 6
+}
+
 # S3
 module "s3" {
   count  = terraform.workspace == "production" ? 1 : 0
   source = "./modules/s3"
 
-  tags = local.tags
+  irworkshop_domain = "irworkshop${random_id.gen_id.hex}"
+  tags              = local.tags
 }
