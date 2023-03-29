@@ -45,7 +45,6 @@ resource "random_id" "gen_id" {
 
 # S3
 module "s3" {
-  count  = terraform.workspace == "production" ? 1 : 0
   source = "./modules/s3"
 
   irworkshop_domain = "irworkshop${random_id.gen_id.hex}"
