@@ -31,6 +31,7 @@ No requirements.
 |------|--------|---------|
 | <a name="module_eb_setup_workshop"></a> [eb\_setup\_workshop](#module\_eb\_setup\_workshop) | ./modules/eb/setup | n/a |
 | <a name="module_eb_workshop"></a> [eb\_workshop](#module\_eb\_workshop) | ./modules/eb | n/a |
+| <a name="module_eb_workshop2"></a> [eb\_workshop2](#module\_eb\_workshop2) | ./modules/eb | n/a |
 | <a name="module_s3"></a> [s3](#module\_s3) | ./modules/s3 | n/a |
 | <a name="module_vpc"></a> [vpc](#module\_vpc) | ./modules/vpc | n/a |
 
